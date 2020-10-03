@@ -1,0 +1,501 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fstream>
+#include <iostream>
+#include <conio.h>
+#include <cstring>
+# include <ctime>
+#include <algorithm>
+#include <time.h>
+#define NOMBREARCHIVO "CLIENTES.bin"
+#define NOMBREARCHIVOLOTE "PROCESADOS.bin"
+
+using namespace std;
+
+struct CLIENTE
+{
+    char USUARIO[10];
+    char FECHA [100];
+    char ACTIVO [10];
+    int TOTAL;
+    char EMAIL[10];
+    bool activado =true;
+};
+
+struct LOTE{
+    int COMPRAID;
+    char FECHA[25];
+    int MONTO;
+    char USUARIOID [20];
+    char NROARTICULO[20];
+};
+
+int EXISTE (char * ID){
+bool si=false;
+int encontrado=0;
+FILE *f;
+f=fopen(NOMBREARCHIVO,"r+b");
+    CLIENTE c;
+     while((!encontrado && fread(&c,sizeof(struct CLIENTE),1,f)))
+    {
+        if (strcmp(ID, c.USUARIO)==0)
+        {
+           si=true;
+           encontrado=1;
+           return si;
+        }
+        fread(&c, sizeof(CLIENTE), 1, f);
+    }
+}
+
+int SUMARMONTOATOTAL(char USUARIO[],int MONTO)
+{
+    FILE *f;
+    int encontrado =0;
+    int TOTALACTUA=0;
+    struct CLIENTE c;
+    if (f=fopen(NOMBREARCHIVO,"r+b"))
+    {
+        while(!encontrado && fread(&c,sizeof(struct CLIENTE),1,f))
+        {
+            if (strcmp(USUARIO, c.USUARIO)==0)
+            {
+           TOTALACTUA= MONTO+c.TOTAL;
+           c.TOTAL=TOTALACTUA;
+           int pos=ftell(f)-sizeof(CLIENTE);
+           fseek(f,pos,SEEK_SET);
+           fwrite(&c, sizeof(CLIENTE), 1, f);
+           printf("Se modifico el importe para dicho cliente.\n");
+           encontrado=1;
+           break;
+            }
+        }
+        if (!encontrado)
+            printf("No se encontro la persona buscada.\n");
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
+bool GUARDARLOTE(void)
+{
+    FILE *o;
+    LOTE l;
+     time_t t;
+        struct tm *tm;
+    if (o=fopen(NOMBREARCHIVOLOTE,"ab"))
+    {
+        t=time(NULL);
+        tm=localtime(&t);
+        strftime(l.FECHA, 100, "%d/%m/%Y   %H:%M:%S", tm);
+        cout << "Ingrese compra ID:" << endl;
+        cin >>  l.COMPRAID;
+        cout << "Ingrese usuario ID:" << endl;
+        cin >> l.USUARIOID;
+        cout << "Ingrese nro articulo:" << endl;
+        cin >> l.NROARTICULO;
+        cout << "Ingrese monto:" << endl;
+        cin >> l.MONTO;
+        SUMARMONTOATOTAL(l.USUARIOID,l.MONTO);
+        fwrite(&l, sizeof(LOTE),1,o);
+        fclose(o);
+        return true;
+    }
+    return false;
+}
+
+bool GUARDAR(void)
+{
+    FILE *f;
+    CLIENTE c;
+    int existe=false;
+    bool esnum=false;
+    if (f=fopen(NOMBREARCHIVO,"ab"))
+    {
+        cout << "Ingrese usuario ID:" << endl;
+        cin >>  c.USUARIO;
+        existe=EXISTE(c.USUARIO);
+        if (existe==false)
+        {
+            cout << "Ingrese fecha de creacion:" << endl;
+        cin >> c.FECHA;
+        cout << "Ingrese si esta activo (si/no):" << endl;
+        cin >> c.ACTIVO;
+        if (strcmp("si", c.ACTIVO)==0 || strcmp("SI", c.ACTIVO)==0 ){
+            c.activado=true;
+        } else{
+        c.activado=false;
+        }
+       cout << "Ingrese total:" << endl;
+        cin >> c.TOTAL;
+        cout << "Ingrese email:" << endl;
+        cin >> c.EMAIL;
+        fwrite(&c, sizeof(CLIENTE),1,f);
+        fclose(f);
+        return true;
+        }else
+        {
+            printf("El usuario ya existe en el registro\n");
+            fclose(f);
+        }
+
+    }
+    return false;
+}
+
+
+int MOSTRAR(void)
+{
+    FILE *f;
+    CLIENTE c;
+    if (f=fopen(NOMBREARCHIVO,"rb"))
+    {
+        fread(&c,sizeof(CLIENTE),1,f);
+        while(!feof(f))
+        {
+           cout << "******* Datos de la persona *******" << endl;
+            cout << "USUARIO " << c.USUARIO << endl;
+            cout << "FECHA: " << c.FECHA << endl;
+            cout << "ACTIVO: " << c.activado << endl;
+            cout << "TOTAL: " << c.TOTAL << endl;
+            cout << "EMAIL: " << c.EMAIL << endl;
+            fread(&c,sizeof(struct CLIENTE),1,f);
+        }
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
+
+int MOSTRARLOTE(void)
+{
+    FILE *o;
+    LOTE l;
+    if (o=fopen(NOMBREARCHIVOLOTE,"rb"))
+    {
+        fread(&l,sizeof(LOTE),1,o);
+        while(!feof(o))
+        {
+             cout << "****** Datos de la persona *******" << endl;
+            cout << "COMPRA ID " << l.COMPRAID << endl;
+            cout << "FECHA: " << l.FECHA << endl;
+            cout << "NRO ARTICULO: " << l.NROARTICULO << endl;
+            cout << "MONTO: " << l.MONTO << endl;
+            cout << "USUARIO: " << l.USUARIOID << endl;
+            fread(&l,sizeof(struct LOTE),1,o);
+        }
+        fclose(o);
+        return 1;
+    }
+    return 0;
+}
+
+int BUSCARUSUARIO(char USUARIO[])
+{
+    FILE *f;
+    int encontrado =0;
+    struct CLIENTE c;
+    if (f=fopen(NOMBREARCHIVO,"rb"))
+    {
+        while(!encontrado && fread(&c,sizeof(struct CLIENTE),1,f))
+        {
+            if (strcmp(USUARIO, c.USUARIO)==0)//porque si son iguales devuelve 0
+            {
+                encontrado = 1;
+                cout << "******* Datos de la persona *******" << endl;
+                 cout << "USUARIO " << c.USUARIO << endl;
+                cout << "FECHA: " << c.FECHA << endl;
+                cout << "ACTIVO: " << c.activado << endl;
+                cout << "TOTAL: " << c.TOTAL << endl;
+                cout << "EMAIL: " << c.EMAIL << endl;
+            }
+        }
+        if (!encontrado)
+            printf("No se encontro la persona buscada.\n");
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
+
+int BUSCAREMAIL(char EMAIL[])
+{
+    FILE *f;
+    int encontrado =0;
+    struct CLIENTE c;
+    if (f=fopen(NOMBREARCHIVO,"rb"))
+    {
+        while(!encontrado && fread(&c,sizeof(struct CLIENTE),1,f))
+        {
+            if (strcmp(EMAIL, c.EMAIL)==0)//porque si son iguales devuelve 0
+            {
+                encontrado = 1;
+                cout << "******* Datos de la persona *******" << endl;
+                 cout << "USUARIO " << c.USUARIO << endl;
+                cout << "FECHA: " << c.FECHA << endl;
+                cout << "ACTIVO: " << c.activado << endl;
+                cout << "TOTAL: " << c.TOTAL << endl;
+                cout << "EMAIL: " << c.EMAIL << endl;
+            }
+        }
+        if (!encontrado)
+            printf("No se encontro la persona buscada.\n");
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
+int BUSCARLOTES(char USUARIOLOTE[])
+{
+    FILE *f,*o;
+    int encontradocliente =0;
+    int encontradolote =0;
+    struct LOTE l;
+    if (o=fopen(NOMBREARCHIVOLOTE,"rb"))
+    {
+        while(!encontradocliente && fread(&l,sizeof(struct LOTE),1,o))
+        {
+            if (strcmp(USUARIOLOTE, l.USUARIOID)==0)//porque si son iguales devuelve 0
+            {
+                encontradolote=1;
+            cout << "******* Datos de la persona *******" << endl;
+            cout << "COMPRA ID " << l.COMPRAID << endl;
+            cout << "FECHA: " << l.FECHA << endl;
+            cout << "MONTO: " << l.MONTO << endl;
+            cout << "USUARIO ID: " << l.USUARIOID << endl;
+            cout << "NRO ARTICULO: " << l.NROARTICULO << endl;
+
+            }
+        }
+        if (!encontradocliente)
+            printf("No se encontro la persona buscada.\n");
+        fclose(o);
+        return 1;
+    }
+    return 0;
+}
+
+void BURBUJA (CLIENTE A[], int N)
+{
+    int i, j;
+    CLIENTE aux; //variable auxiliar para guardar info y comparar
+    for(i=0;i<N-1;i++)
+        for(j=0;j<N-i-1;j++)
+            if(A[j+1].TOTAL > A[j].TOTAL)
+            {
+              aux=A[j+1];
+              A[j+1]=A[j];
+              A[j]=aux;
+            }
+}
+
+void  ORDENAR ()
+{
+    CLIENTE c, *array;
+    int tam = sizeof(CLIENTE), totalclientes, i=0;
+    ifstream in;
+    ofstream out;
+    in.open("CLIENTES.bin", ios::binary);
+    if(in.fail())
+    {
+       cout << "Error al abrir el fichero" << endl;
+       system("pause");
+       exit(1);
+    }
+    out.open("ORDENADOS.bin", ios::binary);
+    if(out.fail())
+    {
+       cout << "Error al crear el fichero" << endl;
+       system("pause");
+       exit(1);
+    }
+    in.seekg(0,ios::end);
+    totalclientes=in.tellg()/tam;
+    array = new CLIENTE[totalclientes];
+    if(array==NULL)
+    {
+       cout << "Error en la asignación de memoria\n";
+       system("pause");
+       exit(1);
+    }
+    in.seekg(0);
+
+    in.read((char *) &array[i], tam);
+    while(!in.eof())
+    {
+         i++;
+         in.read((char *) &array[i], tam);
+    }
+
+
+     BURBUJA(array,totalclientes);
+
+      for(i=0;i<totalclientes;i++)
+    {
+        if (array[i].activado==true){
+            cout << "******* Datos de la persona *******" << endl;
+            cout << "USUARIO: " << array[i].USUARIO << endl;
+            cout << "FECHA: " << array[i].FECHA << endl;
+            cout << "ACTIVO: " << array[i].activado << endl;
+            cout << "TOTAL: " << array[i].TOTAL << endl;
+            cout << "EMAIL: " << array[i].EMAIL << endl;
+            out.write((char *) &array[i], tam);
+    }
+    }
+    in.close();
+    out.close();
+    delete [] array; //se elimina el array para  cada vez  que se inicia el programa no guarde basura
+}
+
+int FINALIZAR()
+{
+    FILE *faux;
+            FILE *f;
+            CLIENTE c;
+            faux = fopen("clientes2.bin","wb");
+            if (f=fopen(NOMBREARCHIVO,"rb+"))
+            {
+                while(fread(&c,sizeof(CLIENTE),1,f))
+                {
+                    if (c.activado==true)
+                    {
+                        fwrite(&c, sizeof(CLIENTE),1,faux);
+                    }
+                }
+                fclose(f);
+            }
+            fclose(faux);
+            if (!remove(NOMBREARCHIVO))
+            {
+                if(!rename("clientes2.bin",NOMBREARCHIVO))
+                    cout << "Archivo renombrado exitosamente" << endl;
+                else
+                    cout << "No se pudo renombrar el archivo" << endl;
+            }
+            else
+                cout << "No se pudo borrar el viejo archivo" << endl;
+    }
+
+int DESACTIVAR (char USUARIO[])
+{
+    FILE *f;
+    int encontrado =0;
+    CLIENTE c;
+    if (f=fopen(NOMBREARCHIVO,"rb+")) //lectura escritura
+    {
+        while(!encontrado && fread(&c,sizeof(CLIENTE),1,f))
+        {
+            if (strcmp(USUARIO, c.USUARIO)==0)
+            {
+                encontrado = 1;
+                c.activado = false;
+                fseek(f,(-1)*sizeof(CLIENTE), SEEK_CUR); //lo hago para volver el cursor al inicio, retrocedo uno
+                fwrite(&c,sizeof(CLIENTE),1,f);
+            }
+        }
+        if (!encontrado)
+            cout << "No se encontro la persona a borrar." << endl;
+        fclose(f);
+        return 1;
+    }
+    return 0;
+}
+
+char menu()
+{
+    char buscapor [10];
+    char opcion;
+    struct CLIENTE c [100];
+    struct LOTE l ;
+    cout << "Seleccione una opcion:" << endl;
+    cout << "1 - Cargar un nuevo cliente" << endl;
+    cout << "2 - Mostrar clientes"<< endl;
+    cout << "3 - Buscar por ID o email"<< endl;
+    cout << "4 - Desactivar usuario"<< endl;
+    cout << "5 - Listar clientes activos por total del importe"<< endl;
+    cout << "6 - Procesar lote de compras"<< endl;
+    cout << "7 - Mostrar todos los lotes de compras"<< endl;
+    cout << "8 - Mostrar lotes de compras por usuario"<< endl;
+    cout << "9 - Finalizar jornada"<< endl;
+    cout << "Esc - Salir" << endl;
+    do
+        opcion = getch();
+    while (!(opcion > '0' && opcion < '10') && (opcion != 27)); //ascci del simnbolo 0
+    char IDBUSCADO[10];
+    char USUARIOLOTE[10];
+    switch (opcion)
+    {
+        case '1':
+            if (GUARDAR())
+                printf("El registro se ha guardado con exito.\n");
+        break;
+        case '2':
+            if (!MOSTRAR())
+                printf("Error al intentar abrir el archivo.\n");
+
+        break;
+        case '3':
+            printf("Seleccione:\n");
+            printf ("1 - Buscar cliente por ID\n");
+            printf ("2 - Buscar cliente por EMAIL\n");
+            scanf ( "%s",buscapor);
+            if (strcmp("1", buscapor)==0){
+                printf("Ingrese el ID de la persona buscada\n");
+            scanf("%s", IDBUSCADO);
+            if (!BUSCARUSUARIO(IDBUSCADO))
+                printf("Error al intentar abrir el archivo.\n");
+            } else {
+                printf("Ingrese el EMAIL de la persona buscada\n");
+            scanf("%s", IDBUSCADO);
+            if (!BUSCAREMAIL(IDBUSCADO))
+                printf("Error al intentar abrir el archivo.\n");
+            }
+        break;
+        case '4':
+            cout << "Ingrese el ID del cliente a desactivar" << endl;
+            cin >> IDBUSCADO;
+            DESACTIVAR(IDBUSCADO);
+        break;
+        case '5':
+            ORDENAR();
+        break;
+        case '6':
+           if (GUARDARLOTE()){
+                printf("El registro se ha guardado con exito.\n");
+           }
+        break;
+        case '7':
+           if (MOSTRARLOTE()){
+                printf("El registro se ha guardado con exito.\n");
+           } else{
+           printf("Error al intentar abrir el archivo.\n");
+           }
+        break;
+         case '8':
+           printf("Ingrese el ID de la persona buscada\n");
+            scanf("%s", USUARIOLOTE);
+            if (!BUSCARLOTES(USUARIOLOTE))
+                printf("Error al intentar abrir el archivo.\n");
+        break;
+        case '9':
+            FINALIZAR();
+        break;
+    }
+
+    return opcion;
+}
+
+
+int main()
+{
+    char out;
+    do
+        out = menu();
+    while (out != 27);
+  return 0;
+}
